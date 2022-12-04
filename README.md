@@ -6,7 +6,7 @@ an improved BC Liquor App (Assignment 3 Option A) and a Toronto Apartment Buildi
 ## Assignment 4
 
 In this assignment, a shiny app is built entirely from scratch: **Toronto Apartment Buildings** (Option C). 
-The source code for the app can be found in [here](assignment-b3-czz1997/tree/main/apt_buildings).
+The source code for the app can be found in [here](/apt_buildings).
 Visit the app at https://czz1997.shinyapps.io/apt_buildings/.
 
 ### Features
@@ -33,7 +33,7 @@ The dataset used by the app is from The City of Toronto’s Open Data Portal.
 ## Assignment 3
 
 In this assignment, a shiny app is built by improving the existing **BC Liquor app** (Option A).
-The source code for the app can be found in [here](assignment-b3-czz1997/tree/main/bcl_new).
+The source code for the app can be found in [here](/bcl_new).
 Visit the app at https://czz1997.shinyapps.io/bcl_new/.
 
 ### New Features
