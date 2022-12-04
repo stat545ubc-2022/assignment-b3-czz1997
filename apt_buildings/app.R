@@ -31,15 +31,16 @@ ui <- fluidPage(
         sidebarPanel(
             h3("Filters"),
             hr(),
-            sliderInput("yearInput", "Year Range", 1805, 2019, c(1900, 2019)),
-            sliderInput("storeyInput", "Number of storeys range", 0, 51, c(0, 51)),
+            sliderInput("yearInput", "Year Range", 1805, 2019, c(1900, 2019)), # year range filter
+            sliderInput("storeyInput", "Number of storeys range", 0, 51, c(0, 51)), # storey range filter
             hr(),
-            uiOutput("propertyTypeOutput"),
-            uiOutput("facilityTypeOutput")),
+            uiOutput("propertyTypeOutput"), # property type filter
+            uiOutput("facilityTypeOutput")), # facility type filter
 
         mainPanel(
           tabsetPanel(
-            tabPanel("Introduction", includeMarkdown("readme.md")),
+            tabPanel("Introduction",
+                     includeMarkdown("readme.md")), # display readme of the app
             tabPanel("Raw Data",
                      h3("This table shows the raw data after applying given filters."),
                      hr(),
@@ -85,10 +86,10 @@ server <- function(input, output) {
     # Side bar panel
     output$propertyTypeOutput <- renderUI({
       pickerInput("propertyTypeInput","Property Type",
-                  sort(unique(apt_buildings$property_type)),
-                  c("PRIVATE", "SOCIAL HOUSING", "TCHC"),
+                  sort(unique(apt_buildings$property_type)), # retrieve options from column
+                  unique(apt_buildings$property_type), # select all by default
                   options = list(`actions-box` = TRUE), multiple = T)
-    })
+    }) # property type filter
 
     output$facilityTypeOutput <- renderUI({
       pickerInput("facilityTypeInput", "Facility Type",
@@ -104,10 +105,10 @@ server <- function(input, output) {
                     "Sprinkler System" = "sprinkler_system",
                     "Emergency Power" = "emergency_power",
                     "Cooling Room" = "cooling_room"
-                  ),
-                  selected = c("exterior_fire_escape","fire_alarm","sprinkler_system","emergency_power"),
-                  options = list(`actions-box` = TRUE),multiple = T)
-    })
+                  ), # use named list to get rid of column names
+                  selected = c("exterior_fire_escape", "fire_alarm", "sprinkler_system", "emergency_power"),
+                  options = list(`actions-box` = TRUE), multiple = T)
+    }) # facility type filter
 
     # Raw table tab
     filtered <- reactive({
@@ -124,8 +125,8 @@ server <- function(input, output) {
                year_built <= input$yearInput[2],
                no_of_storeys >= input$storeyInput[1],
                no_of_storeys <= input$storeyInput[2],
-               property_type %in% input$propertyTypeInput)
-    })
+               property_type %in% input$propertyTypeInput) # apply filter
+    }) # filtered dataset
 
     output$rawTable <- DT::renderDataTable({
       filtered()
@@ -142,8 +143,8 @@ server <- function(input, output) {
                               -no_of_storeys, -prop_management_company_name,
                               -property_type, -site_address),
                      names_to  = "facilities",
-                     values_to = "equipped")
-    })
+                     values_to = "equipped") # tidy the filtered dataset
+    }) # tidied dataset
 
     tidied_equipped_only <- reactive({
       if (is.null(tidied())) {
@@ -189,7 +190,7 @@ server <- function(input, output) {
       tidied() %>%
         group_by(year_built, facilities) %>%
         summarise(coverage = sum(equipped == "YES") / n())
-    })
+    }) # compute coverage by year on tidied dataset
 
     coverage.storey <- reactive({
       if (is.null(tidied())) {
@@ -199,7 +200,7 @@ server <- function(input, output) {
       tidied() %>%
         group_by(no_of_storeys, facilities) %>%
         summarise(coverage = sum(equipped == "YES") / n())
-    })
+    }) # compute coverage by storey on tidied dataset
 
     output$coverage_table <- DT::renderDataTable({
       if(input$byInput == "Year") {
@@ -207,7 +208,6 @@ server <- function(input, output) {
       } else {
         coverage.storey()
       }
-
     })
 
     output$coverage_plot <- renderPlot({
@@ -237,11 +237,11 @@ server <- function(input, output) {
       } else {
         sliderInput("predictStoreyInput", "Prediction Number of Storeys Range", 0, 100, c(0, 75))
       }
-    })
+    }) # prediction range selector
 
     prediction <- reactive({
       if (input$predictByInput == "Year") {
-        if (is.null(coverage.year())) {
+        if (is.null(coverage.year()) || is.null(input$predictYearInput)) {
           return(NULL)
         }
 
@@ -252,9 +252,9 @@ server <- function(input, output) {
           mutate(model = map(data, ~ lm(coverage ~ I(year_built - 1805), data = .x))) %>%
           transmute(facilities, yhat = map(model, ~ augment(x = .x, newdata=predictRange))) %>%
           unnest(yhat) %>%
-          mutate(predicted = pmax(pmin(.fitted, 1), 0))
+          mutate(predicted = pmax(pmin(.fitted, 1), 0)) # clamp predicted value into range [0, 1]
       } else {
-        if (is.null(coverage.storey())) {
+        if (is.null(coverage.storey()) || is.null(input$predictStoreyInput)) {
           return(NULL)
         }
 
@@ -265,9 +265,9 @@ server <- function(input, output) {
           mutate(model = map(data, ~ lm(coverage ~ no_of_storeys, data = .x))) %>%
           transmute(facilities, yhat = map(model, ~ augment(x = .x, newdata=predictRange))) %>%
           unnest(yhat) %>%
-          mutate(predicted = pmax(pmin(.fitted, 1), 0))
+          mutate(predicted = pmax(pmin(.fitted, 1), 0)) # clamp predicted value into range [0, 1]
       }
-    })
+    }) # fit linear model on coverage data and compute predictions
 
     output$prediction_plot <- renderPlot({
       if (is.null(prediction())) {
